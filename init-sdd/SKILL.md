@@ -1,110 +1,91 @@
 ---
 name: init-sdd
-description: Inicializa un proyecto nuevo desde cero con metodología SDD (Spec-Driven Development) y sistema multiagente (coordinator, planner, implementer, reviewer) mediante una entrevista rigurosa estilo grill-me. Úsala cuando el usuario quiera arrancar o configurar un nuevo proyecto con arquitectura SDD.
+description: Inicializa un proyecto nuevo con metodología SDD (Spec-Driven Development) y sistema multiagente (coordinator, planner, implementer, reviewer) mediante una entrevista por rondas estilo grill-me.
 ---
 
-# Skill: Inicializador de Proyectos SDD (`init-sdd`)
+# Inicializador de proyectos SDD (`init-sdd`)
 
-Tu objetivo es transformar una idea inicial de proyecto en una **arquitectura SDD (Spec-Driven Development) completa y personalizada**, entrevistando primero al usuario con el método **grill-me** (árbol de decisiones por rondas) y generando después todos los archivos de gobierno, memoria y agentes configurados a medida.
+Esta skill transforma una idea de proyecto en una configuración completa de Spec-Driven Development (SDD). Primero entrevista al usuario por rondas para cerrar las decisiones de producto, stack y modelos de IA, y después genera la documentación de arquitectura y los cuatro agentes del flujo de trabajo.
 
----
+## Fase 1: Entrevista de diseño (método `grilling`)
 
-## Fase 1: Entrevista de Diseño (Método `grilling`)
+Antes de crear archivos, haz una entrevista por rondas para definir el proyecto sin asumir decisiones por tu cuenta.
 
-Antes de crear ningún archivo, entrevista al usuario para cerrar todas las decisiones arquitectónicas y de negocio.
+### Reglas de la entrevista
 
-### Reglas de la entrevista:
-1. **Explora primero el directorio actual:** Comprueba de forma silenciosa si el directorio está vacío o si ya existe código (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.) para no preguntar hechos que puedas deducir tú mismo.
-2. **Trabaja por rondas (Frontera de decisión):** En cada ronda, formula únicamente las preguntas cuyos prerrequisitos ya estén claros.
-3. **Formato obligatorio de cada pregunta:**
-   ```markdown
-   ❓ **Q1** - **<Título corto de la decisión>**: <Explicación clara de la decisión y opciones si aplica>
+1. Revisa primero el directorio actual de forma silenciosa para comprobar si está vacío o si ya existen archivos como `package.json`, `pyproject.toml`, `Cargo.toml` o `go.mod`. No preguntes datos que ya estén en el repositorio.
+2. Si tienes acceso al catálogo de modelos del entorno (por ejemplo, `tools.opencode.models`), consúltalo en segundo plano para proponer IDs de modelos reales cuando llegues a la pregunta de modelos.
+3. Agrupa en cada ronda solo las preguntas que no dependan de respuestas pendientes.
+4. Usa este formato en cada ronda:
 
-   ➡️ <Tu recomendación razonada (formulada para que responder "sí" la acepte)>
+```markdown
+Q1 - <Título corto>: <Explicación de la decisión y opciones>
+Recomendación: <Tu propuesta razonada, redactada para que responder "sí" la acepte>
 
-   ---
+Q2 - <Título corto>: <Explicación de la decisión y opciones>
+Recomendación: <Tu propuesta razonada>
+```
 
-   ❓ **Q2** - **<Título corto de la decisión>**: <Explicación...>
+5. Rondas temáticas:
+   - Ronda 1 (Producto y dominio): propósito del proyecto, tipo de aplicación (web, CLI, API, móvil, escritorio), modelo de usuarios, reglas de negocio principales e idioma de la interfaz y de los commits.
+   - Ronda 2 (Stack técnico y estructura): lenguaje, frameworks, base de datos, estructura de carpetas (paquete único o monorepo) y entorno de ejecución (local, Docker, cloud).
+   - Ronda 3 (Testing, restricciones y modelos de los agentes):
+     - Comando exacto para correr los tests (`npm test`, `node --test`, `vitest`, `pytest`, `cargo test`, etc.) y comando de build.
+     - Reglas de código y restricciones del proyecto (qué está prohibido y qué es obligatorio en `docs/constitution.md`).
+     - Modelos de IA para cada agente. Pregunta explícitamente qué modelos quiere usar para:
+       1. `coordinator`: solo conversa con el usuario y reparte tareas entre subagentes, por lo que conviene un modelo rápido y económico (por ejemplo, `google/gemini-3.8-flash#high`, `anthropic/claude-haiku-4-5` o `openai/gpt-5-mini`).
+       2. `planner`, `implementer` y `reviewer`: diseñan la arquitectura, programan con TDD y auditan los cambios, por lo que conviene un modelo con mayor capacidad de razonamiento (por ejemplo, `google/gemini-4-argon#high`, `anthropic/claude-sonnet-4-6#high` o `openai/gpt-5.2#high`). También puedes ofrecer la opción de usar distintos modelos entre estos tres roles o dejar que hereden el modelo activo de la sesión.
+6. Cuando no queden decisiones abiertas, muestra un resumen breve con las decisiones acordadas y espera la confirmación del usuario antes de generar los archivos.
 
-   ➡️ <Tu recomendación razonada>
-   ```
-4. **Rondas temáticas sugeridas:**
-   - **Ronda 1 — Producto y Reglas de Negocio Core:**
-     - Propósito del producto y problema principal que resuelve.
-     - Tipo de aplicación (Web SPA, Fullstack SSR, CLI, API, Mobile, Desktop) y modelo de usuario (usuario único local, multiusuario con auth, SaaS).
-     - Reglas de negocio innegociables del dominio (las leyes del producto).
-     - Idioma de la interfaz, documentación y commits (por defecto: Español, o el idioma en el que hable el usuario).
-   - **Ronda 2 — Stack Técnico y Estructura:**
-     - Lenguaje, frameworks de frontend/backend y gestión de estado/estilos.
-     - Base de datos, ORM y estrategia de persistencia (local SQLite, PostgreSQL, Supabase, etc.).
-     - Estructura del repositorio (monorepo con workspaces, paquete único, carpetas).
-     - Entorno de ejecución y despliegue (Docker Compose, local, cloud).
-   - **Ronda 3 — Testing, Calidad, Modelos y Restricciones Duras (`constitution.md`):**
-     - Runner exacto de tests automatizados (ej. `npm test` con `node --test`, `vitest`, `pytest`, `cargo test`) y comando de compilación (`npm run build`, etc.).
-     - Principios de código (funciones puras para lógica de negocio, tipado estricto, manejo de errores).
-     - Restricciones explícitas: qué **NO** debe hacerse nunca en este proyecto (`❌`) y qué es obligatorio (`✅`).
-     - Modelos de IA para la orquestación multiagente: recomienda por defecto el perfil balanceado (`google/gemini-3.8-flash#high` para `@coordinator` y `google/gemini-4-argon#high` para `@planner`, `@implementer` y `@reviewer`), permitiendo al usuario indicar otros modelos si utiliza otro proveedor (ej. Anthropic o OpenAI).
-5. **Confirmación de cierre:**
-   - Cuando la frontera de decisiones esté vacía y todo esté claro, presenta un **Resumen Ejecutivo de la Arquitectura** y pide confirmación antes de pasar a la Fase 2.
+## Fase 2: Generación de archivos SDD y agentes
 
----
-
-## Fase 2: Generación de Archivos SDD y Sistema Multiagente
-
-Una vez el usuario confirme el resumen, genera los siguientes archivos adaptados **específicamente** al nombre, dominio, stack, comandos de test/build y reglas del nuevo proyecto (nunca uses textos genéricos si ya conoces el stack concreto):
+Con la confirmación del usuario, crea los siguientes archivos adaptados al nombre del proyecto, a su stack, a los comandos reales de test y build y a los modelos elegidos:
 
 ### 1. `docs/constitution.md`
-Debe incluir:
-- **Visión del producto**
-- **Reglas de negocio del dominio** (definidas en la entrevista)
-- **Convenciones técnicas:**
-  - Árbol de estructura de directorios del proyecto
-  - Reglas de nomenclatura (archivos, componentes, funciones, tipos, tablas, endpoints, constantes)
-  - Estándares de código (tipado estricto, funciones puras, prohibición de `any`, etc.)
-  - Diseño de API / Capa de datos / Estilos (si aplica)
-  - Estrategia de Testing (comando exacto de test y qué debe testearse obligatoriamente)
-  - Convenciones de Git (formato `tipo: descripción breve`)
-- **Restricciones duras:** Lista clara con `❌` (prohibido) y `✅` (obligatorio).
+Incluye:
+- Visión del producto y reglas de negocio del dominio.
+- Árbol de directorios del proyecto.
+- Convenciones de nombres (archivos, componentes, funciones, tipos, tablas, endpoints, constantes).
+- Reglas de código (tipado, funciones puras, manejo de errores).
+- Estrategia de testing y comando de ejecución.
+- Formato de commits en Git.
+- Lista de restricciones del proyecto (qué no hacer y qué mantener siempre).
 
 ### 2. `AGENTS.md`
-Define el flujo multiagente SDD del proyecto:
-$$\text{Coordinador} \longrightarrow \text{Planificador} \longrightarrow \text{Implementador} \longleftrightarrow \text{Revisor (QA)}$$
-- Documenta los 4 roles especializados y sus modelos asignados:
-  - `coordinator`: `google/gemini-3.8-flash#high` (o el modelo rápido elegido)
-  - `planner`: `google/gemini-4-argon#high` (o el modelo de razonamiento profundo elegido)
-  - `implementer`: `google/gemini-4-argon#high` (o el modelo de codificación potente elegido)
-  - `reviewer`: `google/gemini-4-argon#high` (o el modelo de auditoría QA elegido)
-- Tabla de convenciones de archivos (`AGENTS.md`, `MEMORY.md`, `docs/constitution.md`, `specs/NNN-nombre/`, `.opencode/agents/`).
-- Tabla resumen del Stack Técnico del proyecto.
-- Flujo de trabajo operativo (5 pasos, incluyendo validación con los comandos reales de test y build del proyecto).
+Documenta el flujo SDD del proyecto:
+`coordinator -> planner -> implementer <-> reviewer`
+- Describe los cuatro agentes, sus rutas en `.opencode/agents/` y el modelo asignado a cada uno.
+- Añade una tabla con los archivos principales (`AGENTS.md`, `MEMORY.md`, `docs/constitution.md`, `specs/NNN-nombre/`, `.opencode/agents/`).
+- Añade una tabla con el stack técnico del proyecto y los pasos del flujo operativo.
 
 ### 3. `MEMORY.md`
-Bitácora viva inicializada con:
-- **Estado actual del proyecto:** Fase 1 (Inicialización SDD completada) y fecha actual.
-- **Decisiones tomadas:** Resumen de producto, stack técnico, asignación de modelos y arquitectura acordados en el grill-me.
-- **Progreso:** Checklist de la Fase 1 y siguientes fases previstas en el roadmap.
-- **Notas técnicas:** Comandos para iniciar en desarrollo, ejecutar tests, compilar y levantar contenedores.
+Inicializa la bitácora del proyecto con:
+- Estado actual (Fase 1: Inicialización SDD) y fecha.
+- Decisiones tomadas en la entrevista (producto, stack y modelos asignados a cada agente).
+- Lista de tareas de la Fase 1 y próximas fases.
+- Comandos habituales de desarrollo, test, build y despliegue.
 
 ### 4. `opencode.jsonc`
-En la raíz del proyecto:
+En la raíz del proyecto, con `default_agent: "coordinator"` y el modelo base elegido por el usuario (sin sufijo `#variant` en la raíz, según la especificación de OpenCode):
+
 ```jsonc
 {
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "coordinator",
-  "model": "google/gemini-3.8-flash"
+  "model": "<PROVEEDOR/MODELO_BASE>"
 }
 ```
 
-### 5. Los 4 Agentes en `.opencode/agents/`
+### 5. Agentes en `.opencode/agents/`
 
-Crea los 4 archivos personalizados con el nombre del proyecto, los modelos elegidos y los comandos exactos de test y build:
+Crea los cuatro archivos sustituyendo `<NOMBRE_DEL_PROYECTO>`, `<COMANDO_DE_TEST>`, `<COMANDO_DE_BUILD>` y `<MODELO_*>` por los valores acordados con el usuario (si el usuario prefirió heredar el modelo de la sesión en alguno, omite la línea `model:` en ese archivo):
 
-#### A. `.opencode/agents/coordinator.md`
+#### `.opencode/agents/coordinator.md`
 ```markdown
 ---
 description: SDD - coordina el flujo SDD completo con planner, implementer y reviewer, y transmite el contexto entre fases
 mode: primary
-model: google/gemini-3.8-flash#high
+model: <MODELO_COORDINATOR>
 permissions:
   - action: edit
     resource: "*"
@@ -161,12 +142,12 @@ Los subagentes NO ven esta conversación. En cada llamada pásales todo lo que n
 - Informa al usuario en una línea al empezar cada fase.
 ```
 
-#### B. `.opencode/agents/planner.md`
+#### `.opencode/agents/planner.md`
 ```markdown
 ---
 description: SDD - redacta la spec, el plan y las tareas de una petición, sin tocar código
 mode: subagent
-model: google/gemini-4-argon#high
+model: <MODELO_PLANNER>
 permissions:
   - action: edit
     resource: "*"
@@ -196,8 +177,8 @@ Lee `docs/constitution.md`, `AGENTS.md`, `MEMORY.md` y el código afectado. Solo
 - Solo el QUÉ y el POR QUÉ: nada de stack, arquitectura ni nombres de archivos de código.
 
 ## Si te piden el plan y las tareas
-- Parte de la spec aprobada. Genera `plan.md` (diagrama de arquitectura Mermaid, archivos a crear/modificar, funciones puras deterministas, pseudocódigo, decisiones justificadas con la alternativa descartada, estrategia de tests con `<COMANDO_DE_TEST>`, qué RF cubre cada parte).
-- Genera `tasks.md`: máximo 10 tareas atómicas, en orden, cada una con sus RF cubiertos, archivos afectados y "Hecho cuando:".
+- Parte de la spec aprobada. Genera `plan.md` (archivos a crear/modificar, funciones puras, pseudocódigo, decisiones justificadas con la alternativa descartada, estrategia de tests con `<COMANDO_DE_TEST>`, qué RF cubre cada parte).
+- Genera `tasks.md`: máximo 10 tareas, en orden, cada una con sus RF cubiertos y "Hecho cuando:".
 
 ## Si te piden un cambio
 Actualiza primero `spec.md` (nuevo RF en EARS + casos límite) y devuelve el diff. No toques `plan.md` ni `tasks.md` hasta que te lo pidan.
@@ -206,12 +187,12 @@ Actualiza primero `spec.md` (nuevo RF en EARS + casos límite) y devuelve el dif
 Devuelve las rutas de los archivos creados o modificados y un resumen de 5 líneas como máximo (o la lista de preguntas).
 ```
 
-#### C. `.opencode/agents/implementer.md`
+#### `.opencode/agents/implementer.md`
 ```markdown
 ---
 description: SDD - implementa UNA tarea de un plan aprobado, con tests primero
 mode: subagent
-model: google/gemini-4-argon#high
+model: <MODELO_IMPLEMENTER>
 permissions:
   - action: shell
     resource: "*"
@@ -230,7 +211,7 @@ Eres el agente implementador (implementer) de <NOMBRE_DEL_PROYECTO>. Ejecutas UN
 - Lee la tarea que te indiquen en `specs/NNN-nombre/tasks.md`, su `plan.md`, `docs/constitution.md` y `AGENTS.md`.
 - Implementa SOLO esa tarea. En la lógica: primero los tests (en rojo) y después el código.
 - Ejecuta `<COMANDO_DE_TEST>`. Nunca des la tarea por hecha con tests en rojo.
-- Si hay cambios de compilación o interfaz, verifica que el build compila con `<COMANDO_DE_BUILD>` y cumple las reglas de `docs/constitution.md`.
+- Si hay cambios de compilación o interfaz, verifica que el build compila con `<COMANDO_DE_BUILD>` y cumple con `docs/constitution.md`.
 - Marca la tarea como hecha en `tasks.md` (`- [x]`) y PARA. No empieces la siguiente.
 - Si la tarea o el plan son incorrectos o imposibles, PARA y explícalo. No improvises una solución distinta.
 - Si es la última tarea de la spec, actualiza `MEMORY.md`.
@@ -239,16 +220,16 @@ Eres el agente implementador (implementer) de <NOMBRE_DEL_PROYECTO>. Ejecutas UN
 Devuelve:
 1. Tarea completada y RF que cubre.
 2. Archivos modificados.
-3. Resultado de `<COMANDO_DE_TEST>` y `<COMANDO_DE_BUILD>`.
+3. Resultado de `<COMANDO_DE_TEST>`.
 4. Cualquier decisión que el plan no cubría.
 ```
 
-#### D. `.opencode/agents/reviewer.md`
+#### `.opencode/agents/reviewer.md`
 ```markdown
 ---
 description: SDD - revisa la spec como QA (clarificación) y valida la implementación RF por RF, sin modificar nada
 mode: subagent
-model: google/gemini-4-argon#high
+model: <MODELO_REVIEWER>
 permissions:
   - action: edit
     resource: "*"
@@ -296,12 +277,10 @@ Empieza siempre con una de estas dos líneas:
 Si hay cambios necesarios, una lista numerada con: `archivo:línea`, qué incumple (tarea, RF o principio) y qué se espera. Las sugerencias que no incumplen la spec van aparte, en "Opcional", y no bloquean.
 ```
 
----
+## Fase 3: Scaffolding opcional y primera spec (`SPEC-001`)
 
-## Fase 3: Scaffolding Opcional y Primera Spec (`SPEC-001`)
+Cuando hayas creado los archivos anteriores, enumera las rutas generadas y pregunta al usuario si quiere dar alguno de estos pasos antes de terminar:
 
-Una vez generados los archivos de la Fase 2, muestra un resumen de los ficheros creados y **pregunta al usuario qué desea hacer a continuación**:
-
-1. **Crear el scaffolding base del proyecto** (estructura de carpetas, `package.json` / archivos de configuración de dependencias, TypeScript, configuración de tests y un test inicial de humo en verde) **+ redactar `specs/001-core-mvp/spec.md`**.
-2. **Solo redactar la primera especificación (`specs/001-.../spec.md`)** para iniciar el ciclo con `@coordinator`.
-3. **Finalizar aquí** para que el usuario cambie al agente `coordinator` y empiece a trabajar manualmente.
+1. Crear la estructura base de código del proyecto (archivos de paquetes, configuración del lenguaje, carpetas y un primer test de prueba funcionando) junto con `specs/001-mvp/spec.md`.
+2. Redactar únicamente la primera especificación (`specs/001-.../spec.md`).
+3. Terminar aquí para pasar al agente `coordinator`.
