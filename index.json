@@ -1,0 +1,9 @@
+{
+  "skills": [
+    {
+      "name": "init-sdd",
+      "version": "1",
+      "files": ["SKILL.md"]
+    }
+  ]
+}
